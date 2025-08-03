@@ -5,8 +5,23 @@
 #include "esp_event.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
+#include "string.h"
 
-static const char *TAG = "WIFI_SNIFFER";
+static const char *TAG = "SNIFFER";
+
+typedef struct
+{
+    uint8_t frame_control[2];
+    uint8_t duration[2];
+    uint8_t addr1[6];
+    uint8_t addr2[6]; // Source MAC
+    uint8_t addr3[6];
+    uint8_t sequence_ctrl[2];
+    uint8_t timestamp[8];
+    uint16_t beacon_interval;
+    uint16_t capability_info;
+    // Following is tagged parameters (SSID, Supported rates, etc)
+} wifi_ieee80211_packet_t;
 
 void wifi_sniffer_init()
 {
@@ -34,15 +49,37 @@ void logger_task(void *pvParameter)
 static void wifi_sniffer_packet_handler(void *buff, wifi_promiscuous_pkt_type_t type)
 {
     const wifi_promiscuous_pkt_t *ppkt = (wifi_promiscuous_pkt_t *)buff;
-    const uint8_t *addr = ppkt->payload;
-
-    const uint8_t *src_mac = addr + 10;
+    const uint8_t *payload = ppkt->payload;
     int rssi = ppkt->rx_ctrl.rssi;
 
-    ESP_LOGI(TAG, "RSSI: %d dBm - SRC MAC: %02X:%02X:%02X:%02X:%02X:%02X",
-             rssi,
-             src_mac[0], src_mac[1], src_mac[2],
-             src_mac[3], src_mac[4], src_mac[5]);
+    // Solo paquetes management tipo beacon (subtype 8)
+    // frame_control byte 0: bits 4-7 subtype, bits 0-3 type
+    uint8_t frame_ctrl = payload[0];
+    uint8_t frame_type = (frame_ctrl >> 2) & 0x3;
+    uint8_t frame_subtype = (frame_ctrl >> 4) & 0xF;
+
+    if (frame_type == 0 && frame_subtype == 8)
+    { // management beacon
+        // Dirección MAC de origen (addr2)
+        const uint8_t *src_mac = payload + 10;
+
+        // La SSID suele estar después de 36 bytes desde el inicio del payload (cabeceras)
+        // Estructura de etiquetas:
+        // offset 36: tag_number (0=SSID), tag_length, tag_data
+        const uint8_t *tags = payload + 36;
+        uint8_t tag_number = tags[0];
+        uint8_t tag_length = tags[1];
+        char ssid[33] = {0};
+
+        if (tag_number == 0 && tag_length <= 32)
+        {
+            memcpy(ssid, &tags[2], tag_length);
+            ESP_LOGI(TAG, "Beacon RSSI:%d MAC:%02X:%02X:%02X:%02X:%02X:%02X SSID:%s",
+                     rssi,
+                     src_mac[0], src_mac[1], src_mac[2], src_mac[3], src_mac[4], src_mac[5],
+                     ssid);
+        }
+    }
 }
 
 // --- Tarea 2: Sniffer
