@@ -6,6 +6,7 @@
 #include "esp_log.h"
 #include "nvs_flash.h"
 #include "string.h"
+#include "udpSender.h"
 
 static const char *TAG = "SNIFFER";
 
@@ -78,6 +79,7 @@ static void wifi_sniffer_packet_handler(void *buff, wifi_promiscuous_pkt_type_t 
                      rssi,
                      src_mac[0], src_mac[1], src_mac[2], src_mac[3], src_mac[4], src_mac[5],
                      ssid);
+            // udp_sender_send(ssid); // Enviar SSID y RSSI a través de UDP
         }
     }
 }
