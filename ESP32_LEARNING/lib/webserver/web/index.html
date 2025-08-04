@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi ESP32 - Portafolio</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <span class="chip-icon">🔧</span>
+                <h1>ESP32 Project</h1>
+            </div>
+            <nav class="nav">
+                <a href="#home" class="nav-link active">Inicio</a>
+                <a href="#about" class="nav-link">Acerca</a>
+                <a href="#projects" class="nav-link">Proyectos</a>
+                <a href="#contact" class="nav-link">Contacto</a>
+            </nav>
+        </header>
+
+        <!-- Hero Section -->
+        <section id="home" class="hero">
+            <div class="hero-content">
+                <h2 class="hero-title">¡Hola! Soy tu ESP32</h2>
+                <p class="hero-subtitle">Un microcontrolador poderoso listo para crear proyectos increíbles</p>
+                <div class="hero-stats">
+                    <div class="stat">
+                        <span class="stat-number" id="uptime">0</span>
+                        <span class="stat-label">Segundos Online</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-number">240MHz</span>
+                        <span class="stat-label">Frecuencia CPU</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-number">WiFi</span>
+                        <span class="stat-label">Conectividad</span>
+                    </div>
+                </div>
+                <button class="cta-button" onclick="showInfo()">
+                    <span>🚀</span>
+                    Explorar Capacidades
+                </button>
+            </div>
+            <div class="hero-visual">
+                <div class="esp32-board">
+                    <div class="board-body">
+                        <div class="chip">ESP32</div>
+                        <div class="pins pins-left">
+                            <div class="pin"></div>
+                            <div class="pin"></div>
+                            <div class="pin"></div>
+                            <div class="pin"></div>
+                            <div class="pin"></div>
+                        </div>
+                        <div class="pins pins-right">
+                            <div class="pin"></div>
+                            <div class="pin"></div>
+                            <div class="pin"></div>
+                            <div class="pin"></div>
+                            <div class="pin"></div>
+                        </div>
+                        <div class="led" id="statusLed"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- About Section -->
+        <section id="about" class="section">
+            <div class="section-content">
+                <h2 class="section-title">Acerca de Este ESP32</h2>
+                <div class="about-grid">
+                    <div class="about-card">
+                        <div class="card-icon">⚡</div>
+                        <h3>Potente</h3>
+                        <p>Dual-core a 240MHz con WiFi y Bluetooth integrados</p>
+                    </div>
+                    <div class="about-card">
+                        <div class="card-icon">🌐</div>
+                        <h3>Conectado</h3>
+                        <p>Servidor web integrado para control remoto</p>
+                    </div>
+                    <div class="about-card">
+                        <div class="card-icon">🔧</div>
+                        <h3>Versátil</h3>
+                        <p>GPIO, I2C, SPI, PWM y muchas más funciones</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Projects Section -->
+        <section id="projects" class="section">
+            <div class="section-content">
+                <h2 class="section-title">Mis Proyectos</h2>
+                <div class="projects-grid">
+                    <div class="project-card">
+                        <div class="project-header">
+                            <span class="project-icon">🌐</span>
+                            <h3>Servidor Web</h3>
+                        </div>
+                        <p>Servidor HTTP que sirve esta página y APIs REST</p>
+                        <div class="project-status">
+                            <span class="status-dot status-active"></span>
+                            <span>Activo</span>
+                        </div>
+                    </div>
+                    <div class="project-card">
+                        <div class="project-header">
+                            <span class="project-icon">🔌</span>
+                            <h3>TCP Socket</h3>
+                        </div>
+                        <p>Servidor TCP en puerto 3333 para comunicación directa</p>
+                        <div class="project-status">
+                            <span class="status-dot status-ready"></span>
+                            <span>Listo</span>
+                        </div>
+                    </div>
+                    <div class="project-card">
+                        <div class="project-header">
+                            <span class="project-icon">📡</span>
+                            <h3>WiFi Manager</h3>
+                        </div>
+                        <p>Gestión automática de conexión WiFi con reconexión</p>
+                        <div class="project-status">
+                            <span class="status-dot status-active"></span>
+                            <span>Conectado</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contact Section -->
+        <section id="contact" class="section">
+            <div class="section-content">
+                <h2 class="section-title">Información del Sistema</h2>
+                <div class="contact-grid">
+                    <div class="info-card">
+                        <h3>📍 Dirección IP</h3>
+                        <p id="ipAddress">Cargando...</p>
+                    </div>
+                    <div class="info-card">
+                        <h3>🔗 Puerto HTTP</h3>
+                        <p>80</p>
+                    </div>
+                    <div class="info-card">
+                        <h3>🔌 Puerto TCP</h3>
+                        <p>3333</p>
+                    </div>
+                    <div class="info-card">
+                        <h3>📊 Estado</h3>
+                        <p id="systemStatus">Online</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>&copy; 2024 ESP32 Project - Creado con ❤️ y mucho código</p>
+        </footer>
+    </div>
+
+    <!-- Modal -->
+    <div id="infoModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2>🚀 Capacidades del ESP32</h2>
+            <ul class="capabilities-list">
+                <li>✅ Dual-core Xtensa LX6 @ 240MHz</li>
+                <li>✅ 520KB SRAM + 4MB Flash</li>
+                <li>✅ WiFi 802.11 b/g/n</li>
+                <li>✅ Bluetooth 4.2 + BLE</li>
+                <li>✅ 34 pines GPIO programables</li>
+                <li>✅ 12-bit ADC hasta 18 canales</li>
+                <li>✅ 2 × 8-bit DAC</li>
+                <li>✅ 10 × touch sensors</li>
+                <li>✅ Temperatura interna</li>
+                <li>✅ Acelerómetro de hardware</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="/script.js"></script>
+</body>
+
+</html>

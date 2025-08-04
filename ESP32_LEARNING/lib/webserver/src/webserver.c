@@ -30,88 +30,131 @@
 #include "driver/gpio.h"
 #include "my_data.h"
 
+#include "web_files.h"
+
 #define PORT 3333
 static const char *TAG = "TCP_SOCKET";
 
 static void tcp_server_task(void *pvParameters)
 {
     char addr_str[128];
-    char rx_buffer[128];
-    char string_data[128];
-    char data_to_send[128];
-    int data_len, string_data_len;
-    int keepAlive = 1;
-    int keepIdle = 5;
-    int keepInterval = 5;
-    int keepCount = 3;
+    char rx_buffer[512];
     struct sockaddr_storage dest_addr;
-
-    int counter = 0;
-
     struct sockaddr_in *dest_addr_ip4 = (struct sockaddr_in *)&dest_addr;
+
     dest_addr_ip4->sin_addr.s_addr = htonl(INADDR_ANY);
     dest_addr_ip4->sin_family = AF_INET;
     dest_addr_ip4->sin_port = htons(PORT);
 
-    // Open socket
-    int listen_sock = socket(AF_INET, SOCK_STREAM, 0); // 0 for TCP Protocol
+    int listen_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
+    if (listen_sock < 0)
+    {
+        ESP_LOGE(TAG, "Unable to create socket: errno %d", errno);
+        vTaskDelete(NULL);
+        return;
+    }
+
     int opt = 1;
     setsockopt(listen_sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
     ESP_LOGI(TAG, "Socket created");
 
-    bind(listen_sock, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
+    if (bind(listen_sock, (struct sockaddr *)&dest_addr, sizeof(dest_addr)) != 0)
+    {
+        ESP_LOGE(TAG, "Socket unable to bind: errno %d", errno);
+        close(listen_sock);
+        vTaskDelete(NULL);
+        return;
+    }
+
     ESP_LOGI(TAG, "Socket bound, port %d", PORT);
 
-    // Listen to the socket
-    listen(listen_sock, 1);
+    if (listen(listen_sock, 1) != 0)
+    {
+        ESP_LOGE(TAG, "Error during listen: errno %d", errno);
+        close(listen_sock);
+        vTaskDelete(NULL);
+        return;
+    }
 
     while (1)
     {
         ESP_LOGI(TAG, "Socket listening");
 
-        struct sockaddr_storage source_addr; // Large enough for both IPv4 or IPv6
+        struct sockaddr_storage source_addr;
         socklen_t addr_len = sizeof(source_addr);
-
-        // Accept socket
         int sock = accept(listen_sock, (struct sockaddr *)&source_addr, &addr_len);
         if (sock < 0)
         {
             ESP_LOGE(TAG, "Unable to accept connection: errno %d", errno);
-            break;
+            continue;
         }
 
-        // Set tcp keepalive option
-        setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &keepAlive, sizeof(int));
-        setsockopt(sock, IPPROTO_TCP, TCP_KEEPIDLE, &keepIdle, sizeof(int));
-        setsockopt(sock, IPPROTO_TCP, TCP_KEEPINTVL, &keepInterval, sizeof(int));
-        setsockopt(sock, IPPROTO_TCP, TCP_KEEPCNT, &keepCount, sizeof(int));
-        // Convert ip address to string
         if (source_addr.ss_family == PF_INET)
         {
             inet_ntoa_r(((struct sockaddr_in *)&source_addr)->sin_addr, addr_str, sizeof(addr_str) - 1);
         }
-
         ESP_LOGI(TAG, "Socket accepted ip address: %s", addr_str);
 
-        recv(sock, rx_buffer, sizeof(rx_buffer) - 1, 0);
+        int len = recv(sock, rx_buffer, sizeof(rx_buffer) - 1, 0);
+        if (len < 0)
+        {
+            ESP_LOGE(TAG, "recv failed: errno %d", errno);
+            shutdown(sock, 0);
+            close(sock);
+            continue;
+        }
 
-        strcpy(string_data, "Response from ESP32 Server via Socket connection");
-        string_data_len = strlen(string_data);
-        sprintf(data_to_send, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\n\r\n", string_data_len);
-        strcat(data_to_send, string_data);
-        data_len = strlen(data_to_send);
+        rx_buffer[len] = '\0';
+        ESP_LOGI(TAG, "Received request:\n%s", rx_buffer);
 
-        // Send data via socket
-        send(sock, data_to_send, data_len, 0);
+        // Elegir contenido según la URL
+        const char *response_data = NULL;
+        int response_len = 0;
+        const char *content_type = "text/html";
 
-        counter++;
-        printf("send_reply function number %d was activated\n", counter);
-        vTaskDelay(2000 / portTICK_PERIOD_MS);
+        if (strstr(rx_buffer, "GET / ") || strstr(rx_buffer, "GET /index.html"))
+        {
+            response_data = (const char *)index_html;
+            response_len = index_html_len;
+            content_type = "text/html";
+        }
+        else if (strstr(rx_buffer, "GET /style.css"))
+        {
+            response_data = (const char *)style_css;
+            response_len = style_css_len;
+            content_type = "text/css";
+        }
+        else if (strstr(rx_buffer, "GET /script.js"))
+        {
+            response_data = (const char *)script_js;
+            response_len = script_js_len;
+            content_type = "application/javascript";
+        }
+        else
+        {
+            const char *not_found = "HTTP/1.1 404 NOT FOUND\r\nContent-Length: 0\r\n\r\n";
+            send(sock, not_found, strlen(not_found), 0);
+            shutdown(sock, 0);
+            close(sock);
+            continue;
+        }
+
+        char http_header[256];
+        int header_len = snprintf(http_header, sizeof(http_header),
+                                  "HTTP/1.1 200 OK\r\n"
+                                  "Content-Type: %s\r\n"
+                                  "Content-Length: %d\r\n"
+                                  "Connection: close\r\n\r\n",
+                                  content_type, response_len);
+
+        send(sock, http_header, header_len, 0);
+        send(sock, response_data, response_len, 0);
 
         shutdown(sock, 0);
         close(sock);
     }
+
     close(listen_sock);
     vTaskDelete(NULL);
 }
